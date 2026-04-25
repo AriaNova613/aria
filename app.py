@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, send_file, render_template, abort, request, Response
-import os, re, shutil, hashlib, subprocess, json, sys
+import os, re, shutil, hashlib, subprocess, json, sys, logging
 from mimetypes import guess_type
+
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 VERSION = "1.0.0"
 
@@ -17,9 +19,21 @@ def _res_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 app            = Flask(__name__, template_folder=os.path.join(_res_dir(), 'templates'))
-MUSIC_DIR      = _app_dir()
 CACHE_DIR      = os.path.join(_app_dir(), ".audio_cache")
 PLAYLISTS_FILE = os.path.join(_app_dir(), "playlists.json")
+CONFIG_FILE    = os.path.join(_app_dir(), "config.json")
+
+def load_config():
+    if not os.path.exists(CONFIG_FILE): return {}
+    try:
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f: return json.load(f)
+    except: return {}
+
+def save_config(data):
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+
+MUSIC_DIR = load_config().get('music_dir', '')
 SUPPORTED     = ('.mp3', '.wma', '.flac', '.ogg', '.wav', '.m4a', '.aac')
 TRANSCODE_EXTS = {'.wma', '.aac'}
 
@@ -212,7 +226,7 @@ def save_playlists(data):
 
 
 def song_map():
-    """Filename → metadata dict for all files in MUSIC_DIR."""
+    if not MUSIC_DIR or not os.path.isdir(MUSIC_DIR): return {}
     m = {}
     for fn in os.listdir(MUSIC_DIR):
         if fn.lower().endswith(SUPPORTED):
@@ -232,8 +246,30 @@ def get_version():
     return jsonify({"version": VERSION})
 
 
+@app.route("/api/config", methods=["GET"])
+def get_config():
+    return jsonify({"music_dir": MUSIC_DIR,
+                    "configured": bool(MUSIC_DIR and os.path.isdir(MUSIC_DIR))})
+
+
+@app.route("/api/config", methods=["POST"])
+def set_config():
+    global MUSIC_DIR
+    path = (request.json or {}).get("music_dir", "").strip().strip('"').strip("'")
+    if not path:
+        return jsonify({"error": "Path required"}), 400
+    if not os.path.isdir(path):
+        return jsonify({"error": f"Folder not found: {path}"}), 400
+    MUSIC_DIR = path
+    cfg = load_config()
+    cfg["music_dir"] = path
+    save_config(cfg)
+    return jsonify({"music_dir": path, "configured": True})
+
+
 @app.route("/api/songs")
 def get_songs():
+    if not MUSIC_DIR or not os.path.isdir(MUSIC_DIR): return jsonify([])
     songs = []
     for fn in sorted(os.listdir(MUSIC_DIR)):
         if fn.lower().endswith(SUPPORTED):
@@ -341,4 +377,4 @@ if __name__ == "__main__":
         webbrowser.open("http://localhost:5000")
     threading.Thread(target=open_browser, daemon=True).start()
     print(f"\n  Running at http://localhost:5000  (Ctrl+C to stop)\n")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)
