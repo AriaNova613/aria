@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aria — Your music. No cloud. No subscription.</title>
+<meta name="description" content="Aria is a beautiful local music player that runs in your browser. Playlists, album art, audio visualizer, every format. Free and open source.">
+<meta property="og:title" content="Aria — Beautiful local music player">
+<meta property="og:description" content="No subscriptions. No cloud. No account. Just your music library, beautifully played.">
+<meta property="og:type" content="website">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #05050f;
+  --surface: rgba(10,10,28,0.88);
+  --accent: #a78bfa;
+  --accent2: #1db954;
+  --text: #e8eaf6;
+  --muted: #7b88a8;
+  --dim: #3a4260;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  overflow-x: hidden;
+}
+
+#starCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 20%, rgba(100,20,160,.12) 0%, transparent 100%),
+    radial-gradient(ellipse 55% 60% at 90% 75%, rgba(20,55,175,.12) 0%, transparent 100%),
+    radial-gradient(ellipse 40% 35% at 55% 5%,  rgba(0,90,140,.08) 0%, transparent 100%);
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px; height: 60px;
+  background: rgba(5,5,18,.85);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(80,100,180,.1);
+}
+.nav-brand { display: flex; align-items: center; gap: 8px; }
+.nav-brand svg { color: var(--accent); filter: drop-shadow(0 0 6px rgba(167,139,250,.5)); }
+.nav-name {
+  font-size: 16px; font-weight: 800; letter-spacing: 3px;
+  background: linear-gradient(130deg, #e8eaf6 0%, #a78bfa 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.nav-links { display: flex; align-items: center; gap: 24px; }
+.nav-links a {
+  color: var(--muted); text-decoration: none; font-size: 14px;
+  transition: color .15s;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-dl {
+  background: var(--accent); color: #000 !important; font-weight: 600;
+  padding: 8px 18px; border-radius: 7px; font-size: 13px !important;
+  transition: opacity .15s !important;
+}
+.nav-dl:hover { opacity: .88; color: #000 !important; }
+
+/* ── Sections ── */
+section { position: relative; z-index: 1; }
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 100px 24px 80px;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25);
+  border-radius: 20px; padding: 5px 14px; margin-bottom: 28px;
+  font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--accent);
+}
+.hero h1 {
+  font-size: clamp(42px, 8vw, 88px);
+  font-weight: 900; letter-spacing: -1px; line-height: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 50%, #818cf8 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 20px;
+}
+.hero-sub {
+  font-size: clamp(16px, 2.5vw, 22px); color: var(--muted);
+  max-width: 560px; line-height: 1.6; margin: 0 auto 36px;
+}
+.hero-badges {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin-bottom: 40px; flex-wrap: wrap;
+}
+.badge {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+  border-radius: 20px; padding: 5px 13px; font-size: 12px; color: var(--muted);
+}
+.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #000;
+  font-weight: 700; font-size: 15px; padding: 14px 28px;
+  border-radius: 10px; text-decoration: none;
+  box-shadow: 0 0 30px rgba(167,139,250,.3);
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 40px rgba(167,139,250,.45); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  color: var(--text); font-weight: 600; font-size: 15px; padding: 14px 28px;
+  border-radius: 10px; text-decoration: none;
+  transition: background .15s, border-color .15s;
+}
+.btn-secondary:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); }
+
+/* ── App preview ── */
+.preview-wrap {
+  margin: 0 auto 100px; max-width: 900px; padding: 0 24px;
+  position: relative; z-index: 1;
+}
+.preview-frame {
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid rgba(100,120,220,.2);
+  box-shadow: 0 0 80px rgba(100,80,200,.15), 0 0 200px rgba(100,80,200,.07);
+  background: rgba(5,5,18,.95);
+  padding: 20px;
+  backdrop-filter: blur(10px);
+}
+.preview-bar {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 16px; padding: 0 4px;
+}
+.preview-dot { width: 11px; height: 11px; border-radius: 50%; }
+.preview-url {
+  flex: 1; background: rgba(255,255,255,.05); border-radius: 6px;
+  padding: 5px 12px; font-size: 12px; color: var(--dim); text-align: center;
+  border: 1px solid rgba(255,255,255,.06);
+}
+.preview-inner {
+  border-radius: 8px; background: rgba(5,5,14,.9); padding: 20px 24px;
+  display: flex; gap: 20px;
+}
+.preview-sidebar {
+  width: 130px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;
+}
+.preview-sidebar-item {
+  height: 30px; border-radius: 6px; background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; padding: 0 10px;
+  font-size: 10px; color: var(--dim);
+}
+.preview-sidebar-item.active {
+  background: rgba(100,150,255,.1); border-color: rgba(100,150,255,.3); color: var(--text);
+}
+.preview-main { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.preview-row {
+  height: 34px; border-radius: 5px; background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.04); display: flex; align-items: center;
+  padding: 0 12px; gap: 10px; font-size: 11px; color: var(--muted);
+}
+.preview-row.playing { background: rgba(100,160,255,.07); border-color: rgba(100,160,255,.15); color: var(--text); }
+.preview-play { color: var(--accent2); font-size: 9px; }
+.preview-art { width: 20px; height: 20px; border-radius: 3px; background: rgba(167,139,250,.2); flex-shrink: 0; }
+.preview-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-dur { color: var(--dim); font-size: 10px; }
+.preview-player {
+  margin-top: 4px; padding: 12px 16px; border-radius: 8px;
+  background: rgba(4,4,16,.95); border: 1px solid rgba(100,160,255,.1);
+  display: flex; align-items: center; gap: 16px;
+}
+.preview-np { display: flex; align-items: center; gap: 10px; flex: 1; }
+.preview-album { width: 36px; height: 36px; border-radius: 4px; background: rgba(167,139,250,.15); border: 1px solid rgba(167,139,250,.2); flex-shrink: 0; }
+.preview-np-text { overflow: hidden; }
+.preview-np-title { font-size: 11px; font-weight: 500; white-space: nowrap; }
+.preview-np-artist { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.preview-controls { display: flex; align-items: center; gap: 10px; }
+.preview-ctrl { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,.15); }
+.preview-ctrl.play { width: 26px; height: 26px; background: #e8eaf6; }
+.preview-vizbar {
+  position: relative; margin-bottom: 4px;
+  height: 3px; background: rgba(255,255,255,.06); border-radius: 2px;
+}
+.preview-vizbar::after {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%;
+  width: 35%; background: var(--accent); border-radius: 2px;
+}
+
+/* ── Features ── */
+.features { padding: 80px 24px; }
+.section-label {
+  text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
+}
+.section-title {
+  text-align: center; font-size: clamp(28px, 5vw, 44px); font-weight: 800;
+  margin-bottom: 56px; letter-spacing: -0.5px;
+}
+.features-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px; max-width: 960px; margin: 0 auto;
+}
+.feature-card {
+  background: rgba(10,10,28,.7); border: 1px solid rgba(80,100,180,.14);
+  border-radius: 14px; padding: 28px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: border-color .2s, transform .2s;
+}
+.feature-card:hover { border-color: rgba(167,139,250,.3); transform: translateY(-3px); }
+.feature-icon {
+  width: 42px; height: 42px; border-radius: 10px; margin-bottom: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; background: rgba(167,139,250,.12);
+  border: 1px solid rgba(167,139,250,.18);
+}
+.feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.feature-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* ── How it works ── */
+.how { padding: 80px 24px; }
+.steps {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px; max-width: 800px; margin: 0 auto;
+}
+.step {
+  text-align: center; padding: 32px 20px;
+  background: rgba(10,10,28,.5); border: 1px solid rgba(80,100,180,.12);
+  border-radius: 14px;
+}
+.step-num {
+  width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 16px;
+  background: rgba(167,139,250,.15); border: 1px solid rgba(167,139,250,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: var(--accent);
+}
+.step h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.step p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── Comparison ── */
+.compare { padding: 80px 24px; }
+.compare-table {
+  max-width: 740px; margin: 0 auto;
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid rgba(80,100,180,.18);
+}
+.compare-table table { width: 100%; border-collapse: collapse; }
+.compare-table th, .compare-table td {
+  padding: 14px 20px; text-align: center; font-size: 14px;
+  border-bottom: 1px solid rgba(80,100,180,.1);
+}
+.compare-table th { background: rgba(10,10,28,.9); font-weight: 700; font-size: 13px; }
+.compare-table th:first-child, .compare-table td:first-child { text-align: left; color: var(--muted); }
+.compare-table th.aria-col { color: var(--accent); }
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table tr:hover td { background: rgba(255,255,255,.02); }
+.yes { color: var(--accent2); font-weight: 700; }
+.no  { color: rgba(255,255,255,.2); }
+.par { color: var(--muted); font-size: 12px; }
+
+/* ── CTA ── */
+.cta-section {
+  padding: 100px 24px; text-align: center;
+}
+.cta-card {
+  max-width: 600px; margin: 0 auto;
+  background: rgba(10,10,28,.7); border: 1px solid rgba(167,139,250,.2);
+  border-radius: 20px; padding: 60px 40px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 0 80px rgba(100,80,200,.1);
+}
+.cta-card h2 { font-size: clamp(26px, 5vw, 38px); font-weight: 800; margin-bottom: 14px; }
+.cta-card p { font-size: 16px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+.cta-note { margin-top: 20px; font-size: 13px; color: var(--dim); }
+
+/* ── Footer ── */
+footer {
+  position: relative; z-index: 1;
+  padding: 32px 40px; border-top: 1px solid rgba(80,100,180,.1);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+}
+.footer-brand { display: flex; align-items: center; gap: 8px; }
+.footer-brand svg { color: var(--accent); width: 16px; height: 16px; }
+.footer-name { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--muted); }
+footer p { font-size: 13px; color: var(--dim); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 13px; color: var(--dim); text-decoration: none; transition: color .15s; }
+.footer-links a:hover { color: var(--text); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  nav { padding: 0 20px; }
+  .nav-links .nav-hide { display: none; }
+  .preview-sidebar, .preview-controls { display: none; }
+  footer { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="starCanvas"></canvas>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2 L13.2 9.4 L20 12 L13.2 14.6 L12 22 L10.8 14.6 L4 12 L10.8 9.4 Z"/>
+      <circle cx="5.5" cy="4.5" r="1" opacity=".5"/>
+      <circle cx="19" cy="5"   r=".7" opacity=".5"/>
+    </svg>
+    <span class="nav-name">ARIA</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features" class="nav-hide">Features</a>
+    <a href="#how"      class="nav-hide">How it works</a>
+    <a href="https://github.com/YOUR_USERNAME/aria" target="_blank" class="nav-hide">GitHub</a>
+    <a href="https://github.com/YOUR_USERNAME/aria/releases/latest" class="nav-dl">Download</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.2 9.4L20 12L13.2 14.6L12 22L10.8 14.6L4 12L10.8 9.4Z"/></svg>
+    Free & Open Source
+  </div>
+  <h1>ARIA</h1>
+  <p class="hero-sub">A beautiful music player for your local library. No subscriptions. No cloud. No account required.</p>
+  <div class="hero-badges">
+    <span class="badge">Windows</span>
+    <span class="badge">MP3 · FLAC · WMA · AAC · OGG</span>
+    <span class="badge">Any browser on your network</span>
+    <span class="badge">Open Source</span>
+  </div>
+  <div class="hero-ctas">
+    <a href="https://github.com/YOUR_USERNAME/aria/releases/latest" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+      Download v1.0.0
+    </a>
+    <a href="https://github.com/YOUR_USERNAME/aria" class="btn-secondary" target="_blank">
+      View on GitHub →
+    </a>
+  </div>
+</section>
+
+<!-- App Preview -->
+<div class="preview-wrap">
+  <div class="preview-frame">
+    <div class="preview-bar">
+      <div class="preview-dot" style="background:#ff5f57"></div>
+      <div class="preview-dot" style="background:#febc2e"></div>
+      <div class="preview-dot" style="background:#28c840"></div>
+      <div class="preview-url">localhost:5000</div>
+    </div>
+    <div class="preview-inner">
+      <div class="preview-sidebar">
+        <div class="preview-sidebar-item active">All Songs</div>
+        <div class="preview-sidebar-item" style="color:#f43f5e88">♥ Liked</div>
+        <div style="height:6px"></div>
+        <div class="preview-sidebar-item" style="font-size:9px;letter-spacing:1px;color:var(--dim)">GENRES</div>
+        <div class="preview-sidebar-item">Pop</div>
+        <div class="preview-sidebar-item">Rock</div>
+        <div class="preview-sidebar-item">Hip-Hop / Rap</div>
+        <div style="height:6px"></div>
+        <div class="preview-sidebar-item" style="font-size:9px;letter-spacing:1px;color:var(--dim)">PLAYLISTS</div>
+        <div class="preview-sidebar-item">Late Nights</div>
+        <div class="preview-sidebar-item">Road Trip</div>
+      </div>
+      <div class="preview-main">
+        <div class="preview-row playing">
+          <span class="preview-play">▶</span>
+          <div class="preview-art"></div>
+          <span class="preview-title">Blinding Lights</span>
+          <span style="color:var(--muted);font-size:10px">The Weeknd</span>
+          <span class="preview-dur">3:20</span>
+        </div>
+        <div class="preview-row">
+          <span style="color:var(--dim);font-size:10px">2</span>
+          <div class="preview-art" style="background:rgba(29,185,84,.15)"></div>
+          <span class="preview-title">Bohemian Rhapsody</span>
+          <span style="color:var(--muted);font-size:10px">Queen</span>
+          <span class="preview-dur">5:55</span>
+        </div>
+        <div class="preview-row">
+          <span style="color:var(--dim);font-size:10px">3</span>
+          <div class="preview-art" style="background:rgba(100,150,255,.15)"></div>
+          <span class="preview-title">Lose Yourself</span>
+          <span style="color:var(--muted);font-size:10px">Eminem</span>
+          <span class="preview-dur">5:26</span>
+        </div>
+        <div class="preview-row">
+          <span style="color:var(--dim);font-size:10px">4</span>
+          <div class="preview-art" style="background:rgba(251,146,60,.15)"></div>
+          <span class="preview-title">In Da Club</span>
+          <span style="color:var(--muted);font-size:10px">50 Cent</span>
+          <span class="preview-dur">3:44</span>
+        </div>
+        <div class="preview-vizbar"></div>
+        <div class="preview-player">
+          <div class="preview-np">
+            <div class="preview-album"></div>
+            <div class="preview-np-text">
+              <div class="preview-np-title">Blinding Lights</div>
+              <div class="preview-np-artist">The Weeknd</div>
+            </div>
+          </div>
+          <div class="preview-controls">
+            <div class="preview-ctrl"></div>
+            <div class="preview-ctrl play"></div>
+            <div class="preview-ctrl"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="section-label">What you get</div>
+  <h2 class="section-title">Everything a music player should be</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">✦</div>
+      <h3>Stunning interface</h3>
+      <p>Live starfield, real-time audio visualizer, glassy panels. A music player you actually want to look at.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">◎</div>
+      <h3>Smart library</h3>
+      <p>Instant search, 10 auto-detected genre buckets, sort by title, artist, album, or most played.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(29,185,84,.12);border-color:rgba(29,185,84,.2)">≡</div>
+      <h3>Playlists</h3>
+      <p>Create playlists, drag and drop songs in, right-click to add from anywhere. Your music, your way.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(100,150,255,.12);border-color:rgba(100,150,255,.2)">♦</div>
+      <h3>Every format</h3>
+      <p>MP3, FLAC, WMA, AAC, OGG, WAV, M4A. If you own it, Aria plays it.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(244,63,94,.1);border-color:rgba(244,63,94,.2)">♥</div>
+      <h3>Liked songs & history</h3>
+      <p>Heart your favorites. Track your most-played tracks. Your taste, remembered across sessions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(251,146,60,.1);border-color:rgba(251,146,60,.2)">◻</div>
+      <h3>Works on any device</h3>
+      <p>Runs at localhost:5000. Open it on your phone, tablet, or any computer on your home network.</p>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how" id="how">
+  <div class="section-label">Setup</div>
+  <h2 class="section-title">Running in under a minute</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Download & unzip</h3>
+      <p>Grab the latest release from GitHub. Unzip it anywhere on your machine.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Add your music</h3>
+      <p>Drop your MP3, FLAC, WMA — any audio files — into the Aria folder.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Open Aria.exe</h3>
+      <p>Your browser opens automatically. Your full library loads, ready to play.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Comparison -->
+<section class="compare">
+  <div class="section-label">How it stacks up</div>
+  <h2 class="section-title">The music player you've been missing</h2>
+  <div class="compare-table">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th class="aria-col">★ Aria</th>
+          <th>Spotify</th>
+          <th>VLC</th>
+          <th>WMP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Local files</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>Beautiful UI</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>No subscription</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>Browser / any device</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>Playlists</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="par">Basic</span></td>
+          <td><span class="par">Basic</span></td>
+        </tr>
+        <tr>
+          <td>Audio visualizer</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>No account needed</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="yes">✓</span></td>
+        </tr>
+        <tr>
+          <td>Open source</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-card">
+    <h2>Your library deserves better</h2>
+    <p>Download Aria and have it running in under a minute. Free, open source, and yours to keep.</p>
+    <div class="hero-ctas" style="justify-content:center">
+      <a href="https://github.com/YOUR_USERNAME/aria/releases/latest" class="btn-primary">
+        Download for Windows — Free
+      </a>
+    </div>
+    <p class="cta-note">MIT License · No account · No tracking · Your music stays on your machine</p>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-brand">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.2 9.4L20 12L13.2 14.6L12 22L10.8 14.6L4 12L10.8 9.4Z"/></svg>
+    <span class="footer-name">ARIA</span>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/YOUR_USERNAME/aria" target="_blank">GitHub</a>
+    <a href="https://github.com/YOUR_USERNAME/aria/releases" target="_blank">Releases</a>
+    <a href="https://github.com/YOUR_USERNAME/aria/issues" target="_blank">Issues</a>
+  </div>
+  <p>MIT License &nbsp;·&nbsp; Free forever</p>
+</footer>
+
+<script>
+(function() {
+  const canvas = document.getElementById('starCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, stars, shooters;
+
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function initStars() {
+    stars = [];
+    [{count:220,minR:.3,maxR:.7,minA:.25,maxA:.7,spd:.004},
+     {count:60, minR:.7,maxR:1.3,minA:.35,maxA:.9,spd:.007},
+     {count:20, minR:1.3,maxR:2.0,minA:.5, maxA:1.0,spd:.012}
+    ].forEach(({count,minR,maxR,minA,maxA,spd}) => {
+      for (let i = 0; i < count; i++)
+        stars.push({x:Math.random(),y:Math.random(),r:rand(minR,maxR),
+          base:rand(minA,maxA),a:Math.random(),spd:rand(spd*.5,spd*1.5),dir:Math.random()<.5?1:-1});
+    });
+    shooters = [];
+  }
+
+  let lastShot = 0, nextIn = rand(5000,12000);
+
+  function draw(ts) {
+    ctx.clearRect(0,0,W,H);
+    stars.forEach(s => {
+      s.a += s.spd * s.dir;
+      if (s.a > 1 || s.a < 0) s.dir *= -1;
+      ctx.globalAlpha = s.base * (.4 + .6 * Math.abs(Math.sin(s.a * Math.PI)));
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2); ctx.fill();
+    });
+    if (ts - lastShot > nextIn) {
+      const angle = rand(.18,.45);
+      shooters.push({x:rand(.05,.75)*W, y:rand(.02,.45)*H,
+        vx:Math.cos(angle)*rand(9,16), vy:Math.sin(angle)*rand(9,16),
+        len:rand(80,160), life:1, decay:rand(.014,.024)});
+      lastShot = ts; nextIn = rand(5000,12000);
+    }
+    shooters = shooters.filter(s => s.life > 0);
+    shooters.forEach(s => {
+      const tx = s.x - Math.cos(Math.atan2(s.vy,s.vx))*s.len;
+      const ty = s.y - Math.sin(Math.atan2(s.vy,s.vx))*s.len;
+      const g = ctx.createLinearGradient(tx,ty,s.x,s.y);
+      g.addColorStop(0,'transparent');
+      g.addColorStop(.7,`rgba(200,220,255,${s.life*.5})`);
+      g.addColorStop(1,`rgba(255,255,255,${s.life})`);
+      ctx.globalAlpha = 1; ctx.strokeStyle = g; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(s.x,s.y); ctx.stroke();
+      s.x += s.vx; s.y += s.vy; s.life -= s.decay;
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+
+  resize(); initStars();
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
