@@ -41,7 +41,7 @@ No subscriptions. No cloud. No account. Just your music library — organized, v
 **Requirements:** Python 3.9+
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/aria.git
+git clone https://github.com/AriaNova613/aria.git
 cd aria
 
 pip install flask mutagen
