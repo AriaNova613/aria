@@ -93,4 +93,4 @@ Requires PyInstaller (`pip install pyinstaller`). Output lands in `release/Aria/
 
 ## License
 
-MIT — free to use, modify, and distribute.
+[CC BY-NC 4.0](LICENSE) — free for personal use. Commercial use requires written permission from the author.
